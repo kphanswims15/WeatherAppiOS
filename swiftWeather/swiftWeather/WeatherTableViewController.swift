@@ -7,20 +7,48 @@
 //
 
 import UIKit
+import CoreLocation
 
 class WeatherTableViewController: UITableViewController, UISearchBarDelegate {
 
     // outlets and global variables
-    @IBOutlet var searchBar: UITableView!
+    @IBOutlet weak var searchBar: UISearchBar!
+    
+    
+    var forcastData = [Weather]()
     
     override func viewDidLoad() {
         super.viewDidLoad()
 
         searchBar.delegate = self
+        
+        // provides a demo forcast when you first run the app
+        updateWeatherForLocation(location: "New York")
     }
 
     func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
-        <#code#>
+        searchBar.resignFirstResponder()
+        if let locationString = searchBar.text, !locationString.isEmpty {
+            updateWeatherForLocation(location: locationString)
+        }
+    }
+    
+    func updateWeatherForLocation (location:String) {
+        CLGeocoder().geocodeAddressString(location) { (placemarks:[CLPlacemark]?, error: Error?) in
+            if error == nil {
+                if let location = placemarks?.first?.location {
+                    Weather.forecast(withLocation: location.coordinate, completion: { (results:[Weather]?) in
+                        if let weatherData = results {
+                            self.forcastData = weatherData
+                            
+                            DispatchQueue.main.async {
+                                self.tableView.reloadData()
+                            }
+                        }
+                    })
+                }
+            }
+        }
     }
     
     override func didReceiveMemoryWarning() {
@@ -32,23 +60,33 @@ class WeatherTableViewController: UITableViewController, UISearchBarDelegate {
 
     override func numberOfSections(in tableView: UITableView) -> Int {
         // #warning Incomplete implementation, return the number of sections
-        return 0
+        return forcastData.count
     }
 
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         // #warning Incomplete implementation, return the number of rows
-        return 0
+        return 1
     }
 
-    /*
+    override func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
+        let date = Calendar.current.date(byAdding: .day, value: section, to: Date())
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "MMMM dd, yyyy"
+        
+        return dateFormatter.string(from: date!)
+    }
+    
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "reuseIdentifier", for: indexPath)
-
-        // Configure the cell...
+        let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath)
+        
+        let weatherObject = forcastData[indexPath.section]
+        
+        cell.textLabel?.text = weatherObject.summary
+        cell.detailTextLabel?.text = "\(Int(weatherObject.temperature)) ºF"
+        cell.imageView?.image = UIImage(named: weatherObject.icon)
 
         return cell
     }
-    */
 
     /*
     // Override to support conditional editing of the table view.
